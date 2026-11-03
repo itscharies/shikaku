@@ -76,6 +76,12 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   const [elapsed, setElapsed] = useState(initial?.elapsed ?? 0);
   const [showHelp, setShowHelp] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // Big boards are wider than the screen. In pan mode the board hands touches
+  // back to the browser so the frame scrolls natively; drawing is paused.
+  const big = size > 12;
+  const [pan, setPan] = useState(false);
+  const panModeRef = useRef(pan);
+  panModeRef.current = pan;
 
   const status = useMemo(() => checkBoard(puzzle, rects), [puzzle, rects]);
   const solved = status.solved;
@@ -197,6 +203,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
     // One finger draws; two fingers pan the scroll frame (big boards are
     // wider than the screen, and touch-action:none turns native panning off).
     const onStart = (e: TouchEvent) => {
+      if (panModeRef.current) return; // native scroll takes it
       e.preventDefault();
       if (e.touches.length === 2) {
         end(true);
@@ -214,6 +221,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
       begin(e.touches[0].clientX, e.touches[0].clientY);
     };
     const onMove = (e: TouchEvent) => {
+      if (panModeRef.current) return;
       e.preventDefault();
       if (panRef.current && e.touches.length === 2) {
         const sc = scrollRef.current;
@@ -227,6 +235,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
       move(e.touches[0].clientX, e.touches[0].clientY);
     };
     const onEnd = (e: TouchEvent) => {
+      if (panModeRef.current) return;
       e.preventDefault();
       if (panRef.current) {
         if (e.touches.length === 0) panRef.current = null;
@@ -252,7 +261,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   }, [begin, move, end]);
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || pan) return;
     e.preventDefault();
     begin(e.clientX, e.clientY);
     const onMM = (ev: MouseEvent) => move(ev.clientX, ev.clientY);
@@ -300,7 +309,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
       <div className={`board-frame${solved ? " solved" : ""}`}>
         <div
           ref={boardRef}
-          className="board"
+          className={`board${pan ? " panning" : ""}`}
           style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}
           data-size={size}
           onMouseDown={onMouseDown}
@@ -342,6 +351,16 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
       </p>
 
       <div className="actions">
+        {big && (
+          <button
+            className={`btn mode${pan ? " on" : ""}`}
+            onClick={() => setPan((p) => !p)}
+            aria-pressed={pan}
+            title="Switch between drawing boxes and scrolling the board"
+          >
+            {pan ? "✋ Pan" : "✎ Draw"}
+          </button>
+        )}
         <button className="btn" onClick={undo} disabled={history.length === 0}>
           Undo
         </button>
@@ -390,8 +409,9 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
               </li>
               <li>Tap a lone <b>1</b> to box it in.</li>
               <li>
-                On the big Sunday board, <b>two fingers</b> pan around; one
-                finger still draws.
+                On the big Sunday board, tap <b>Draw</b> to switch it to
+                <b> Pan</b> and scroll around, then back to draw. Two fingers
+                also pan while in draw mode.
               </li>
               <li>
                 A box takes its number’s colour when it’s right, and turns

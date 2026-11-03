@@ -204,6 +204,8 @@ button {
 .board-scroll { align-self: center; width: 100%; display: flex; justify-content: center; }
 .board-scroll.big {
   overflow: auto;
+  /* Scroll both axes inside the frame, so the page itself stays put. */
+  max-height: calc(100dvh - 230px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   justify-content: flex-start;
   align-self: stretch;
   margin: 0 -18px;
@@ -213,7 +215,9 @@ button {
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
-.board-scroll.big .board-frame { width: calc(25 * 32px + 2 * 6px + 2 * var(--px)); flex-shrink: 0; }
+.board-scroll.big .board-frame { width: calc(25 * 32px + 2 * 6px + 2 * var(--px)); flex-shrink: 0; margin-bottom: var(--drop); }
+.board.panning { touch-action: pan-x pan-y; cursor: grab; }
+.btn.mode.on { background: var(--n5); color: var(--ink); }
 .board-scroll.big .cell { font-size: 11px; }
 .board-frame {
   align-self: center;
