@@ -45,13 +45,16 @@ export function Play({ id }: { id: string }) {
   return <Board puzzle={puzzle} />;
 }
 
-function TopBar({ title, right }: { title: string; right?: React.ReactNode }) {
+function TopBar({ title, sub, right }: { title: string; sub?: string; right?: React.ReactNode }) {
   return (
     <header className="topbar">
       <button className="back" onClick={() => goTo("")} aria-label="All puzzles">
-        ‹
+        ◀
       </button>
-      <h1 className="topbar-title">{title}</h1>
+      <h1 className="topbar-title">
+        {title}
+        {sub && <span className="topbar-sub">{sub}</span>}
+      </h1>
       <div className="topbar-right">{right}</div>
     </header>
   );
@@ -281,7 +284,8 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   return (
     <div className="page play">
       <TopBar
-        title={`${size}×${size}${daily ? ` · ${dailyLabel(seed)}` : " · practice"}`}
+        title={`${size}×${size}`}
+        sub={daily ? dailyLabel(seed) : "practice"}
         right={
           <>
             <span className={`clock${solved ? " stopped" : ""}`}>{fmtTime(elapsed)}</span>
