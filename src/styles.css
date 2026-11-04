@@ -215,7 +215,14 @@ button {
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
-.board-scroll.big .board-frame { width: calc(25 * 32px + 2 * 6px + 2 * var(--px)); flex-shrink: 0; margin-bottom: var(--drop); }
+.board-scroll.big .board-frame {
+  width: calc(25 * 32px + 2 * 6px + 2 * var(--px));
+  flex-shrink: 0;
+  /* Not the centred align-self of the small board: in this scroll row that
+     would centre the tall frame vertically and push its top out of reach. */
+  align-self: flex-start;
+  margin-bottom: var(--drop);
+}
 .board.panning { touch-action: pan-x pan-y; cursor: grab; }
 .btn.mode.on { background: var(--n5); color: var(--ink); }
 .board-scroll.big .cell { font-size: 11px; }
@@ -240,8 +247,13 @@ button {
   background: var(--grid);
   gap: 2px;
   padding: 2px;
+  /* Rows are implicit, and auto rows size to content — a row with no
+     numbers in it would come out shorter. Force equal tracks. */
+  grid-auto-rows: minmax(0, 1fr);
 }
 .cell {
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;

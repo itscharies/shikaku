@@ -310,7 +310,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
         <div
           ref={boardRef}
           className={`board${pan ? " panning" : ""}`}
-          style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}
+          style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
           data-size={size}
           onMouseDown={onMouseDown}
           onContextMenu={(e) => e.preventDefault()}
