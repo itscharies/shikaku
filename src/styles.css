@@ -201,10 +201,12 @@ button {
   line-height: 1;
 }
 
+/* Big boards: the frame is sized by the zoomable cell size (inline --cell)
+   and scrolls inside this viewport; the minimap floats over its corner. */
+.board-viewport { position: relative; align-self: stretch; display: flex; flex-direction: column; }
 .board-scroll { align-self: center; width: 100%; display: flex; justify-content: center; }
 .board-scroll.big {
   overflow: auto;
-  /* Scroll both axes inside the frame, so the page itself stays put. */
   max-height: calc(100dvh - 230px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   justify-content: flex-start;
   align-self: stretch;
@@ -216,16 +218,38 @@ button {
   overscroll-behavior: contain;
 }
 .board-scroll.big .board-frame {
-  width: calc(25 * 32px + 2 * 6px + 2 * var(--px));
   flex-shrink: 0;
   /* Not the centred align-self of the small board: in this scroll row that
      would centre the tall frame vertically and push its top out of reach. */
   align-self: flex-start;
   margin-bottom: var(--drop);
 }
-.board.panning { touch-action: pan-x pan-y; cursor: grab; }
-.btn.mode.on { background: var(--n5); color: var(--ink); }
-.board-scroll.big .cell { font-size: 11px; }
+.board-scroll.big .cell { font-size: clamp(6px, calc(var(--cell, 32px) * 0.36), 14px); }
+.board-scroll.big .cell:empty { font-size: 0; }
+/* Tap mode: the browser pans with one finger; the board only sees taps. */
+.board.tapmode { touch-action: pan-x pan-y; cursor: cell; }
+
+.minimap {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 5;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  opacity: 0;
+  transition: opacity 0.1s;
+  pointer-events: none;
+  overflow: hidden;
+}
+.minimap.show { opacity: 1; }
+.minimap svg { display: block; width: 100%; height: 100%; }
+.minimap-view {
+  position: absolute;
+  border: 2px solid var(--n3);
+  background: color-mix(in srgb, var(--n3) 18%, transparent);
+}
+
 .board-frame {
   align-self: center;
   width: min(100%, 520px);
@@ -292,6 +316,15 @@ button {
   background: color-mix(in srgb, var(--go) 30%, transparent);
 }
 .rect.preview.good .preview-area { color: var(--go); }
+/* Tap mode's first corner, waiting for the second. */
+.rect.anchor {
+  --c: var(--n3);
+  border-style: solid;
+  background: color-mix(in srgb, var(--n3) 35%, transparent);
+  animation: blink 0.9s steps(2, end) infinite;
+  z-index: 1;
+}
+@keyframes blink { 50% { opacity: 0.45; } }
 .preview-area {
   position: absolute;
   right: 3px;
@@ -374,6 +407,30 @@ button {
   text-shadow: 3px 3px 0 var(--ink);
 }
 .sheet-sub { margin: 0 0 18px; color: var(--muted); font-size: 19px; }
+/* Settings options: a stacked pair of pixel buttons, the chosen one lit. */
+.setting { text-align: left; display: flex; flex-direction: column; gap: 10px; margin: 16px 0 18px; padding-right: var(--drop); }
+.setting-label {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--bg-2);
+  border: var(--px) solid var(--ink);
+  box-shadow: var(--drop) var(--drop) 0 var(--ink);
+}
+.opt b { font-family: var(--font-display); font-size: 11px; font-weight: normal; line-height: 1.4; }
+.opt span { font-size: 18px; line-height: 1.15; color: var(--muted); }
+.opt.on { background: var(--panel); border-color: var(--n3); box-shadow: var(--drop) var(--drop) 0 var(--n3); }
+.opt.on b { color: var(--n3); }
 .help { text-align: left; font-size: 21px; line-height: 1.2; margin-bottom: 18px; }
 .help p { margin: 8px 0; }
 .help ul { margin: 8px 0; padding-left: 20px; }
