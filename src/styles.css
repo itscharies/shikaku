@@ -245,8 +245,10 @@ button {
   -webkit-touch-callout: none;
   cursor: crosshair;
   background: var(--grid);
-  gap: 2px;
-  padding: 2px;
+  --pad: 2px;
+  --gap: 2px;
+  gap: var(--gap);
+  padding: var(--pad);
   /* Rows are implicit, and auto rows size to content — a row with no
      numbers in it would come out shorter. Force equal tracks. */
   grid-auto-rows: minmax(0, 1fr);
@@ -268,24 +270,28 @@ button {
 .rect {
   position: absolute;
   pointer-events: none;
+  box-sizing: border-box;
   border: var(--px) solid var(--c, var(--fg));
-  background: color-mix(in srgb, var(--c, var(--fg)) 26%, transparent);
-  box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--c, var(--fg)) 55%, transparent);
+  background: color-mix(in srgb, var(--c, var(--fg)) 30%, transparent);
 }
 .rect.bad {
   --c: var(--bad);
   border-style: dashed;
-  box-shadow: none;
   background:
     repeating-linear-gradient(45deg, transparent 0 5px, color-mix(in srgb, var(--bad) 28%, transparent) 5px 10px);
 }
 .rect.preview {
   --c: var(--fg);
   border-style: dotted;
-  box-shadow: none;
   background: color-mix(in srgb, var(--fg) 10%, transparent);
   z-index: 2;
 }
+.rect.preview.good {
+  --c: var(--go);
+  border-style: solid;
+  background: color-mix(in srgb, var(--go) 30%, transparent);
+}
+.rect.preview.good .preview-area { color: var(--go); }
 .preview-area {
   position: absolute;
   right: 3px;

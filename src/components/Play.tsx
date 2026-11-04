@@ -12,6 +12,7 @@ import {
   placeRect,
   randomSeed,
   rectAt,
+  rectContains,
   saveShikakuProgress,
   type Rect,
   type ShikakuPuzzle,
@@ -90,16 +91,46 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
     document.title = `Shikaku ${size}×${size}`;
   }, [size]);
 
-  // Timer: ticks while unsolved and the tab is visible.
+  // Timer. Time is measured from timestamps, not interval ticks (which
+  // iOS throttles or freezes). Only visible time counts: the running stretch
+  // is folded into `base` whenever the page hides, and a gap between ticks of
+  // more than a few seconds — a freeze with no visibilitychange — is dropped.
+  const baseRef = useRef(initial?.elapsed ?? 0); // seconds already banked
+  const anchorRef = useRef<number | null>(null); // Date.now() when this stretch began
   useEffect(() => {
     if (solved) return;
-    let last = Date.now();
-    const t = setInterval(() => {
+    const start = () => {
+      if (anchorRef.current === null) anchorRef.current = Date.now();
+    };
+    const stop = () => {
+      if (anchorRef.current !== null) {
+        baseRef.current += (Date.now() - anchorRef.current) / 1000;
+        anchorRef.current = null;
+      }
+      setElapsed(baseRef.current);
+    };
+    const onVis = () => (document.visibilityState === "visible" ? start() : stop());
+    let lastTick = Date.now();
+    const tick = () => {
       const now = Date.now();
-      if (document.visibilityState === "visible") setElapsed((e) => e + (now - last) / 1000);
-      last = now;
-    }, 1000);
-    return () => clearInterval(t);
+      const gap = now - lastTick;
+      lastTick = now;
+      if (anchorRef.current === null) return;
+      if (gap > 5000) anchorRef.current += gap; // frozen, not playing
+      setElapsed(baseRef.current + (now - anchorRef.current) / 1000);
+    };
+    if (document.visibilityState === "visible") start();
+    const t = setInterval(tick, 250);
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", stop);
+    window.addEventListener("pageshow", onVis);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", stop);
+      window.removeEventListener("pageshow", onVis);
+      stop();
+    };
   }, [solved]);
 
   // Persist on every change. An untouched board isn't saved, but once
@@ -126,6 +157,8 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   };
   const reset = () => {
     commit([]);
+    baseRef.current = 0;
+    if (anchorRef.current !== null) anchorRef.current = Date.now();
     setElapsed(0);
     setDismissed(false);
     clearShikakuProgress(id);
@@ -275,12 +308,15 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   };
 
   // ---- render ------------------------------------------------------------
-  const pct = (n: number) => `${(n / size) * 100}%`;
+  // Place overlays on exact cell edges: the board has --pad around and --gap
+  // between cells, so a cell's pitch is (side - 2·pad + gap) / size and a
+  // box spanning k cells is k·pitch minus one trailing gap.
+  const pitch = `((100% - 2 * var(--pad) + var(--gap)) / ${size})`;
   const rectStyle = (x: Rect) => ({
-    left: pct(x.c0),
-    top: pct(x.r0),
-    width: pct(x.c1 - x.c0 + 1),
-    height: pct(x.r1 - x.r0 + 1),
+    left: `calc(var(--pad) + ${x.c0} * ${pitch})`,
+    top: `calc(var(--pad) + ${x.r0} * ${pitch})`,
+    width: `calc(${x.c1 - x.c0 + 1} * ${pitch} - var(--gap))`,
+    height: `calc(${x.r1 - x.r0 + 1} * ${pitch} - var(--gap))`,
   });
   const clueByCell = useMemo(() => {
     const m = new Map<number, number>();
@@ -288,6 +324,12 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
     return m;
   }, [puzzle, size]);
   const previewArea = preview ? (preview.r1 - preview.r0 + 1) * (preview.c1 - preview.c0 + 1) : 0;
+  // Green as soon as the box being dragged would be a correct one.
+  const previewGood = useMemo(() => {
+    if (!preview) return false;
+    const inside = puzzle.clues.filter((q) => rectContains(preview, q.r, q.c));
+    return inside.length === 1 && inside[0].n === previewArea;
+  }, [preview, previewArea, puzzle]);
   const wrongCount = status.rects.filter((s) => !s.valid).length;
 
   return (
@@ -334,7 +376,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
             />
           ))}
           {preview && (
-            <div className="rect preview" style={rectStyle(preview)}>
+            <div className={`rect preview${previewGood ? " good" : ""}`} style={rectStyle(preview)}>
               <span className="preview-area">{previewArea}</span>
             </div>
           )}
