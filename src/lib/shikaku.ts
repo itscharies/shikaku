@@ -76,9 +76,9 @@ function rng(seed: number): () => number {
 // "<size>x<size>-<seed>", e.g. "7x7-k3f9a2" or "7x7-d20261103" (the daily).
 // The seed is any URL-safe token; the puzzle is a pure function of the id.
 
-export const SHIKAKU_SIZES = [5, 7, 10] as const;
+export const SHIKAKU_SIZES = [10, 15, 18] as const;
 export type ShikakuSize = (typeof SHIKAKU_SIZES)[number];
-export const DEFAULT_SIZE: ShikakuSize = 7;
+export const DEFAULT_SIZE: ShikakuSize = 10;
 /** The Sunday special — one big board on top of the usual three. */
 export const MEGA_SIZE = 25;
 export const isSunday = (d: Date) => d.getDay() === 0;
@@ -118,6 +118,7 @@ function maxArea(size: number): number {
   if (size <= 5) return 6;
   if (size <= 7) return 8;
   if (size <= 10) return 12;
+  if (size <= 15) return 16;
   return 20;
 }
 

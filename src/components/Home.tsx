@@ -3,6 +3,7 @@ import { goTo } from "../App.tsx";
 import {
   MEGA_SIZE,
   SHIKAKU_SIZES,
+  type ShikakuSize,
   dailySeed,
   isSunday,
   listShikakuProgress,
@@ -79,13 +80,9 @@ export function Home() {
                       ? `Solved · ${fmtTime(p.elapsed)}`
                       : p && p.rects.length > 0
                         ? "In progress"
-                        : n === 5
-                          ? "Easy"
-                          : n === 7
-                            ? "Medium"
-                            : n === 10
-                              ? "Hard"
-                              : "Sunday special"}
+                        : n === MEGA_SIZE
+                          ? "Sunday special"
+                          : (["Easy", "Medium", "Hard"][SHIKAKU_SIZES.indexOf(n as ShikakuSize)] ?? "")}
                   </span>
                 </button>
               );
