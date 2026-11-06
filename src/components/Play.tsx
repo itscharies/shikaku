@@ -12,7 +12,9 @@ import {
   placeRect,
   randomSeed,
   rectAt,
+  rectArea,
   rectContains,
+  rectsOverlap,
   saveShikakuProgress,
   type Rect,
   type ShikakuPuzzle,
@@ -319,6 +321,18 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   const anchorRef = useRef(anchor);
   anchorRef.current = anchor;
 
+  // A box goes down only when it would be correct — exactly one clue inside,
+  // equal to its area — and it covers no cell already boxed. Wrong or
+  // overlapping selections are simply not placed; removal is an explicit tap.
+  const canPlace = useCallback(
+    (x: Rect): boolean => {
+      if (rectsRef.current.some((y) => rectsOverlap(x, y))) return false;
+      const inside = puzzle.clues.filter((q) => rectContains(x, q.r, q.c));
+      return inside.length === 1 && inside[0].n === rectArea(x);
+    },
+    [puzzle],
+  );
+
   const removeOrOne = useCallback(
     (c: Cell): boolean => {
       const current = rectsRef.current;
@@ -368,9 +382,10 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
         removeOrOne(d.anchor);
         return;
       }
-      commitRef.current(placeRect(rectsRef.current, normRect(d.anchor, d.cur)));
+      const x = normRect(d.anchor, d.cur);
+      if (canPlace(x)) commitRef.current(placeRect(rectsRef.current, x));
     },
-    [removeOrOne],
+    [removeOrOne, canPlace],
   );
 
   // tap mode
@@ -379,16 +394,23 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
       if (!c) return;
       const a = anchorRef.current;
       if (a) {
+        if (a.r === c.r && a.c === c.c) {
+          // second tap on the anchor cancels
+          setAnchor(null);
+          setPreview(null);
+          return;
+        }
+        const x = normRect(a, c);
+        if (!canPlace(x)) return; // not a correct box yet: keep the anchor
         setAnchor(null);
         setPreview(null);
-        if (a.r === c.r && a.c === c.c) return; // second tap on the anchor cancels
-        commitRef.current(placeRect(rectsRef.current, normRect(a, c)));
+        commitRef.current(placeRect(rectsRef.current, x));
         return;
       }
       if (removeOrOne(c)) return;
       setAnchor(c);
     },
-    [removeOrOne],
+    [removeOrOne, canPlace],
   );
 
   useEffect(() => {
@@ -527,11 +549,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   }, [puzzle, size]);
   const previewArea = preview ? (preview.r1 - preview.r0 + 1) * (preview.c1 - preview.c0 + 1) : 0;
   // Green as soon as the box being drawn would be a correct one.
-  const previewGood = useMemo(() => {
-    if (!preview) return false;
-    const inside = puzzle.clues.filter((q) => rectContains(preview, q.r, q.c));
-    return inside.length === 1 && inside[0].n === previewArea;
-  }, [preview, previewArea, puzzle]);
+  const previewGood = useMemo(() => (preview ? canPlace(preview) : false), [preview, canPlace, rects]);
   const wrongCount = status.rects.filter((s) => !s.valid).length;
   const atFit = big && cell <= fitCell();
 
@@ -706,16 +724,18 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
               {settings.input === "drag" ? (
                 <li>
                   <b>Drag</b> from one corner to the opposite corner to draw a
-                  box. It turns <b>green</b> when it’s right.
+                  box. It turns <b>green</b> when it’s right, and only a green
+                  box is placed.
                 </li>
               ) : (
                 <li>
                   <b>Tap</b> one corner, then the opposite corner, to draw a
-                  box. The preview turns <b>green</b> when it’s right.
+                  box. The first corner stays put until you tap a corner that
+                  makes a correct box, or tap it again to cancel.
                 </li>
               )}
               <li>
-                <b>Tap</b> a box to remove it. Drawing over boxes replaces them.
+                <b>Tap</b> a box to remove it. Boxes never overwrite each other.
               </li>
               <li>Tap a lone <b>1</b> to box it in.</li>
               <li>
