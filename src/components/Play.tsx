@@ -14,7 +14,6 @@ import {
   rectAt,
   rectArea,
   rectContains,
-  rectsOverlap,
   saveShikakuProgress,
   type Rect,
   type ShikakuPuzzle,
@@ -322,11 +321,10 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   anchorRef.current = anchor;
 
   // A box goes down only when it would be correct — exactly one clue inside,
-  // equal to its area — and it covers no cell already boxed. Wrong or
-  // overlapping selections are simply not placed; removal is an explicit tap.
+  // equal to its area. A correct box may replace boxes it overlaps; a wrong
+  // selection is simply not placed. Removal is also an explicit tap.
   const canPlace = useCallback(
     (x: Rect): boolean => {
-      if (rectsRef.current.some((y) => rectsOverlap(x, y))) return false;
       const inside = puzzle.clues.filter((q) => rectContains(x, q.r, q.c));
       return inside.length === 1 && inside[0].n === rectArea(x);
     },
@@ -549,7 +547,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
   }, [puzzle, size]);
   const previewArea = preview ? (preview.r1 - preview.r0 + 1) * (preview.c1 - preview.c0 + 1) : 0;
   // Green as soon as the box being drawn would be a correct one.
-  const previewGood = useMemo(() => (preview ? canPlace(preview) : false), [preview, canPlace, rects]);
+  const previewGood = useMemo(() => (preview ? canPlace(preview) : false), [preview, canPlace]);
   const wrongCount = status.rects.filter((s) => !s.valid).length;
   const atFit = big && cell <= fitCell();
 
@@ -735,7 +733,7 @@ function Board({ puzzle }: { puzzle: ShikakuPuzzle }) {
                 </li>
               )}
               <li>
-                <b>Tap</b> a box to remove it. Boxes never overwrite each other.
+                <b>Tap</b> a box to remove it. A correct box drawn over others replaces them.
               </li>
               <li>Tap a lone <b>1</b> to box it in.</li>
               <li>
